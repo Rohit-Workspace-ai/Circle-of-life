@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Circle of Life</title>
+<style>
+:root{--bg:#0e1410;--fg:#e8f0e0;--dim:#7d9a7a;--accent:#f2c14e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;background:var(--bg);color:var(--fg);font-family:Georgia,'Times New Roman',serif;overflow:hidden;touch-action:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;background:radial-gradient(circle at 50% 40%,#1b2a1c,var(--bg) 75%)}
+#hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 8px;pointer-events:none;text-align:center}
+#strip{display:flex;justify-content:center;gap:2px;font-size:14px;flex-wrap:wrap}
+#strip span{opacity:.3;transition:opacity .3s,transform .3s}
+#strip span.done{opacity:.6}
+#strip span.now{opacity:1;transform:scale(1.35)}
+#info{margin-top:6px;font-size:15px;color:var(--accent);letter-spacing:.5px}
+#settingsBtn{position:fixed;z-index:5;right:14px;top:calc(env(safe-area-inset-top,0px) + 12px);width:42px;height:42px;border:1px solid #526b50;border-radius:50%;background:#1b2a1c;color:#f2c14e;font-size:21px}
+#settingsPanel{display:none;position:fixed;z-index:10;inset:0;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:24px;font-family:Georgia,serif}
+#settingsCard{width:min(360px,100%);border:1px solid #647d55;border-radius:18px;background:#17231a;padding:25px 20px;text-align:center;box-shadow:0 12px 40px #0009}
+#settingsCard h2{color:#f2c14e;font-size:27px;margin-bottom:22px}
+#settingsCard p{font-size:16px;line-height:1.65;color:#e8f0e0;margin:9px 0}
+#settingsCard .muted{color:#9bb196;font-size:13px;margin-top:18px}
+#closeSettings{margin-top:22px;padding:11px 28px;border:0;border-radius:22px;background:#f2c14e;color:#17231a;font-weight:bold;font-size:15px}
+#settingsCard{max-height:100%;overflow-y:auto}
+#rateBox{margin-top:20px;padding-top:16px;border-top:1px solid #34472f}
+#rateBox h3{color:#f2c14e;font-size:18px;margin-bottom:8px}
+#stars{display:flex;justify-content:center;gap:6px}
+#stars button{border:0;background:none;font-size:34px;color:#4a5f48;padding:0 2px;line-height:1}
+#stars button.on{color:#f2c14e}
+#reviewText{display:none;width:100%;margin-top:12px;min-height:70px;padding:10px;border:1px solid #526b50;border-radius:10px;background:#0e1410;color:#e8f0e0;font-family:Georgia,serif;font-size:14px;resize:none;-webkit-user-select:text;user-select:text}
+#submitRate{display:none;margin-top:12px;padding:9px 24px;border:0;border-radius:20px;background:#f2c14e;color:#17231a;font-weight:bold;font-size:14px}
+#rateMsg{font-size:13px;color:#9bb196;margin-top:8px;min-height:16px}
+#kits{position:fixed;z-index:4;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;justify-content:center;gap:14px}
+.kit{position:relative;width:74px;height:74px;border:1px solid #526b50;border-radius:18px;background:#1b2a1c;color:#e8f0e0;font-family:Georgia,serif;font-size:30px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.kit small{font-size:11px;color:#9bb196}
+.kit.locked{opacity:.55}
+.kit.empty{opacity:.35}
+.kit .cnt{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;border-radius:11px;background:#f2c14e;color:#17231a;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center}
+.kit.on{border-color:#f2c14e;box-shadow:0 0 12px #f2c14e88}
+#unlockPanel{display:none;position:fixed;z-index:11;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:24px;font-family:Georgia,serif}
+#unlockCard{width:min(360px,100%);border:1px solid #647d55;border-radius:18px;background:#17231a;padding:24px 20px;text-align:center}
+#unlockCard h2{color:#f2c14e;font-size:24px;margin-bottom:10px}
+#unlockCard p{font-size:14px;line-height:1.5;color:#c9d8c4;margin:8px 0}
+.followBtn{display:block;width:100%;margin:10px 0;padding:12px;border:1px solid #526b50;border-radius:14px;background:#1b2a1c;color:#e8f0e0;font-size:15px;font-family:Georgia,serif}
+.followBtn.done{border-color:#f2c14e;color:#f2c14e}
+#unlockGo{margin-top:8px;padding:11px 26px;border:0;border-radius:22px;background:#f2c14e;color:#17231a;font-weight:bold;font-size:15px;opacity:.4}
+#unlockGo.ready{opacity:1}
+#ytGo{margin-top:8px;padding:11px 26px;border:0;border-radius:22px;background:#f2c14e;color:#17231a;font-weight:bold;font-size:15px;opacity:.4}
+#ytGo.ready{opacity:1}
+#ytClose{display:block;margin:14px auto 0;border:0;background:none;color:#9bb196;font-size:14px}
+#unlockClose{display:block;margin:14px auto 0;border:0;background:none;color:#9bb196;font-size:14px}
+#hud{padding-left:58px;padding-right:58px}
+#kits{display:none}
+#startScreen{position:fixed;z-index:3;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(env(safe-area-inset-top,0px) + 70px) 22px calc(env(safe-area-inset-bottom,0px) + 24px);overflow-y:auto;font-family:Georgia,serif}
+#startScreen .logo{font-size:54px}
+#startScreen h1{font-size:32px;color:#f2c14e;margin:6px 0 14px}
+#startScreen h3{font-size:16px;color:#f2c14e;letter-spacing:1px;margin:6px 0}
+#startScreen p{font-size:15px;line-height:1.45;color:#e8f0e0;margin-top:10px}
+#startScreen p span{display:block;font-size:14px;color:#8aa886}
+#enterBtn{margin-top:26px;padding:15px 54px;border:0;border-radius:32px;font-family:Georgia,serif;font-size:22px;font-weight:bold;letter-spacing:3px;color:#fff;background:linear-gradient(135deg,#ff9a00,#ff3d77,#7b2ff7);box-shadow:0 0 22px #ff3d7788,0 6px 18px #0008;animation:pulse 1.6s ease-in-out infinite}
+#enterBtn:active{transform:scale(.95)}
+@keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 0 18px #ff3d7766,0 6px 18px #0008}50%{transform:scale(1.07);box-shadow:0 0 34px #ff9a00aa,0 6px 18px #0008}}
+#startScreen .kitnote{margin-top:16px;font-size:13px;color:#9bb196}
+#payBtn{display:block;width:100%;margin-top:18px;padding:12px;border:0;border-radius:14px;background:linear-gradient(135deg,#ff9a00,#ff3d77,#7b2ff7);color:#fff;font-family:Georgia,serif;font-size:16px;font-weight:bold}
+#planPanel{display:none;position:fixed;z-index:12;inset:0;background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:20px;font-family:Georgia,serif}
+#planCard{width:min(360px,100%);max-height:100%;overflow-y:auto;border:1px solid #647d55;border-radius:18px;background:#17231a;padding:22px 18px;text-align:left}
+#planCard h2{color:#f2c14e;font-size:23px;text-align:center;margin-bottom:12px}
+#planCard h4{color:#f2c14e;font-size:14px;letter-spacing:1px;margin:14px 0 6px}
+#planCard .row{display:flex;justify-content:space-between;font-size:14px;margin:6px 0;color:#e8f0e0}
+#planCard .ok{color:#8fd18a}#planCard .no{color:#e08a8a}
+#planCard .perk{font-size:14px;line-height:1.5;margin:6px 0;color:#e8f0e0}
+#planCard .btn{display:block;width:100%;margin-top:10px;padding:11px;border:1px solid #526b50;border-radius:14px;background:#1b2a1c;color:#e8f0e0;font-family:Georgia,serif;font-size:15px}
+#planCard .btn.gold{background:#f2c14e;color:#17231a;border:0;font-weight:bold}
+#planCard .note{font-size:12px;color:#8aa886;margin-top:10px;text-align:center}
+#dataRow{display:flex;gap:10px;margin-top:12px}
+#dataRow button{flex:1;padding:11px 6px;border:1px solid #526b50;border-radius:14px;background:#1b2a1c;color:#e8f0e0;font-family:Georgia,serif;font-size:14px}
+#clearBtn{border-color:#a05a5a!important;color:#f0a0a0!important}
+#dlg{display:none;position:fixed;z-index:20;inset:0;background:rgba(0,0,0,.9);align-items:center;justify-content:center;padding:24px;font-family:Georgia,serif}
+#dlgCard{width:min(340px,100%);border:1px solid #647d55;border-radius:18px;background:#17231a;padding:22px 18px;text-align:center}
+#dlgCard h2{color:#f2c14e;font-size:21px;margin-bottom:8px}
+#dlgCard p{font-size:14px;line-height:1.5;color:#c9d8c4;margin:6px 0}
+#dlgIn{display:none;width:100%;margin-top:10px;padding:11px;border:1px solid #526b50;border-radius:10px;background:#0e1410;color:#e8f0e0;font-size:16px;text-align:center;text-transform:uppercase;-webkit-user-select:text;user-select:text}
+#dlgErr{min-height:18px;margin-top:8px;font-size:13px;color:#e08a8a}
+#dlgOk{margin-top:6px;padding:11px 28px;border:0;border-radius:22px;background:#f2c14e;color:#17231a;font-weight:bold;font-size:15px}
+#dlgNo{display:block;margin:12px auto 0;border:0;background:none;color:#9bb196;font-size:14px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"><div id="strip"></div><div id="info"></div></div>
+<div id="startScreen">
+  <div class="logo">⚛️</div>
+  <h1>Circle of Life</h1>
+  <h3>HOW TO PLAY</h3>
+  <p>MOVE: tap or drag anywhere.<span>Your creature follows your finger.</span></p>
+  <p>EAT: touch the food to eat it.<span>Food runs away when you get close.<br>Corner it against a wall to catch it.</span></p>
+  <p>EVOLVE: eat more food each level (3, 5, 10 ...).<span>Reach Human to finish the cycle.</span></p>
+  <p class="kitnote">🧵 Thread · 🌀 Teleport · ⚡ 2x Speed kits help you in the game.</p>
+  <button id="enterBtn">ENTER</button>
+</div>
+<div id="kits">
+  <button class="kit" id="kThread" aria-label="Thread kit">🧵<small>Thread</small></button>
+  <button class="kit" id="kTele" aria-label="Teleport kit">🌀<small>Teleport</small></button>
+  <button class="kit" id="kSpeed" aria-label="Speed kit">⚡<small>2x Speed</small></button>
+</div>
+<div id="unlockPanel" role="dialog" aria-modal="true">
+  <div id="unlockCard">
+    <h2>🔒 Unlock Kits</h2>
+    <p>Follow both Instagram accounts to activate all 3 kits (3 free uses of each per game).</p>
+    <button class="followBtn" id="f1">Follow account 1</button>
+    <button class="followBtn" id="f2">Follow account 2</button>
+    <button id="unlockGo">Unlock kits</button>
+    <button id="unlockClose">Not now</button>
+  </div>
+</div>
+<div id="ytPanel" role="dialog" aria-modal="true" style="display:none;position:fixed;z-index:11;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:24px;font-family:Georgia,serif">
+  <div id="unlockCard">
+    <h2>▶ Free kits finished</h2>
+    <p>Follow (subscribe on) my YouTube channel to get <strong>20 kit uses every day</strong>, for as long as you keep following.</p>
+    <button class="followBtn" id="ytFollow">Follow on YouTube</button>
+    <button id="ytGo">I have followed</button>
+    <button id="ytClose">Not now</button>
+  </div>
+</div>
+<div id="planPanel" role="dialog" aria-modal="true"><div id="planCard"></div></div>
+<div id="dlg" role="dialog" aria-modal="true"><div id="dlgCard"><h2 id="dlgT"></h2><p id="dlgM"></p><input id="dlgIn" maxlength="30" autocomplete="off" placeholder="Reference number"><div id="dlgErr"></div><button id="dlgOk">OK</button><button id="dlgNo">Cancel</button></div></div>
+<button id="settingsBtn" aria-label="Settings" title="Settings">⚙</button>
+<div id="settingsPanel" role="dialog" aria-modal="true" aria-label="Game settings">
+  <div id="settingsCard">
+    <h2>Settings</h2>
+    <p><strong>Game:</strong> Circle of Life</p>
+    <p><strong>Founders:</strong><br>Rohit &amp; Jithesh</p>
+    <p><strong>Running by:</strong><br>Rohit</p>
+    <button id="payBtn">💳 Payment &amp; Plan</button>
+    <div id="dataRow"><button id="clearBtn">🗑 Clear Data</button><button id="recoverBtn">♻ Recover Data</button></div>
+    <div id="rateBox">
+      <h3>Rate this game</h3>
+      <div id="stars"></div>
+      <textarea id="reviewText" maxlength="500" placeholder="Write a review (optional)"></textarea>
+      <button id="submitRate">Submit</button>
+      <div id="rateMsg"></div>
+    </div>
+    <p class="muted">Thank you for playing!</p>
+    <button id="closeSettings">Close</button>
+  </div>
+</div>
+<script>
+(function(){
+var ST=[
+ {n:'Atom',e:'⚛️',p:'✨',pn:'sparks',need:0},
+ {n:'Microorganism',e:'🦠',p:'🧬',pn:'nutrients',need:0},
+ {n:'Amoeba',e:'🟣',p:'🦠',pn:'microbes',need:0},
+ {n:'Mosquito',e:'🦟',p:'🩸',pn:'blood drops',need:0},
+ {n:'Butterfly',e:'🦋',p:'🌸',pn:'flowers',need:0},
+ {n:'Frog',e:'🐸',p:'🪰',pn:'flies',need:0},
+ {n:'Snake',e:'🐍',p:'🐭',pn:'mice',need:0},
+ {n:'Crocodile',e:'🐊',p:'🐸',pn:'frogs',need:0},
+ {n:'Tiger',e:'🐅',p:'🦌',pn:'deer',need:0},
+ {n:'Lion',e:'🦁',p:'🐗',pn:'boars',need:0},
+ {n:'Elephant',e:'🐘',p:'🌿',pn:'leaves',need:0},
+ {n:'Dinosaur',e:'🦖',p:'🦎',pn:'lizards',need:0},
+ {n:'Hen',e:'🐔',p:'🐛',pn:'worms',need:0},
+ {n:'Monkey',e:'🐒',p:'🍌',pn:'bananas',need:0},
+ {n:'Chimpanzee',e:'🦍',p:'🥥',pn:'coconuts',need:0},
+ {n:'Human',e:'🧑',p:'🍖',pn:'feasts',need:0}
+];
+// Levels get longer: 3 foods, then 5, then 10, and it keeps growing (+2 each level, max 30)
+function needFor(i){return i===0?3:i===1?5:i===2?10:Math.min(30,10+(i-2)*2);}
+for(var q0=0;q0<ST.length;q0++)ST[q0].need=needFor(q0);
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var settingsPanel=document.getElementById('settingsPanel');
+document.getElementById('settingsBtn').addEventListener('click',function(e){
+  e.stopPropagation();settingsPanel.style.display='flex';
+});
+document.getElementById('closeSettings').addEventListener('click',function(){
+  settingsPanel.style.display='none';
+});
+settingsPanel.addEventListener('click',function(e){
+  if(e.target===settingsPanel)settingsPanel.style.display='none';
+});
+var rating=0,starsEl=document.getElementById('stars'),rv=document.getElementById('reviewText'),
+    rb=document.getElementById('submitRate'),rm=document.getElementById('rateMsg');
+function drawStars(){
+  starsEl.innerHTML='';
+  for(var i=1;i<=5;i++){(function(i){
+    var b=document.createElement('button');b.textContent='★';b.setAttribute('aria-label',i+' star');
+    if(i<=rating)b.className='on';
+    b.addEventListener('click',function(){rating=i;rm.textContent='';drawStars();rv.style.display='block';rb.style.display='inline-block';});
+    starsEl.appendChild(b);})(i);}
+}
+try{var sv=JSON.parse(localStorage.getItem('col_rating')||'null');
+  if(sv){rating=sv.r;rv.value=sv.t||'';rv.style.display='block';rb.style.display='inline-block';rm.textContent='Your saved rating';}}catch(e){}
+drawStars();
+rb.addEventListener('click',function(){
+  if(!rating){rm.textContent='Please pick a star rating.';return;}
+  try{localStorage.setItem('col_rating',JSON.stringify({r:rating,t:rv.value.trim()}));}catch(e){}
+  rm.textContent='Thanks for your '+rating+'★ rating!';
+});
+
+// ---- KITS ----
+// Put the two Instagram usernames to follow here:
+var IG_ACCOUNTS=['rohit_aura_forever','jithesh__togarana'];
+var kitLeft={thread:3,tele:3,speed:3},boost=0,threads=[],unlocked=false,visited=[false,false];
+try{unlocked=localStorage.getItem('col_kits')==='1';}catch(e){}
+function openIG(i){openURL('https://www.instagram.com/'+IG_ACCOUNTS[i]+'/');}
+function openURL(url){
+  try{if(window.Android&&window.Android.openUrl){window.Android.openUrl(url);return;}}catch(e){}
+  window.open(url,'_blank');
+}
+// Put your YouTube channel link here:
+var YT_CHANNEL='https://www.youtube.com/@YOUR_CHANNEL',DAILY=20,ytFollowed=false,ytVisited=false;
+try{ytFollowed=localStorage.getItem('col_yt')==='1';}catch(e){}
+var dailyMem=null;
+function dailyGet(){
+  var d=new Date().toDateString(),o=null;
+  try{o=JSON.parse(localStorage.getItem('col_daily')||'null');}catch(e){}
+  if(!o)o=dailyMem;
+  if(!o||o.d!==d){o={d:d,n:DAILY};dailySave(o);}
+  return o.n;
+}
+function dailySave(o){dailyMem=o;try{localStorage.setItem('col_daily',JSON.stringify(o));}catch(e){}}
+function dailyUse(){var n=dailyGet();dailySave({d:new Date().toDateString(),n:Math.max(0,n-1)});}
+function freeOut(){return kitLeft.thread+kitLeft.tele+kitLeft.speed<=0;}
+var ypan=document.getElementById('ytPanel'),ygo=document.getElementById('ytGo');
+document.getElementById('ytFollow').addEventListener('click',function(){ytVisited=true;openURL(YT_CHANNEL);ygo.className='ready';this.className='followBtn done';});
+ygo.addEventListener('click',function(){
+  if(!ytVisited)return;
+  ytFollowed=true;try{localStorage.setItem('col_yt','1');}catch(e){}
+  ypan.style.display='none';kitUI();
+});
+document.getElementById('ytClose').addEventListener('click',function(){ypan.style.display='none';});
+var upan=document.getElementById('unlockPanel'),ugo=document.getElementById('unlockGo');
+function drawUnlock(){
+  for(var i=0;i<2;i++){var b=document.getElementById('f'+(i+1));
+    b.textContent=(visited[i]?'✓ ':'')+'Follow @'+IG_ACCOUNTS[i];b.className='followBtn'+(visited[i]?' done':'');}
+  ugo.className=visited[0]&&visited[1]?'ready':'';
+}
+[0,1].forEach(function(i){document.getElementById('f'+(i+1)).addEventListener('click',function(){visited[i]=true;openIG(i);drawUnlock();});});
+ugo.addEventListener('click',function(){
+  if(!(visited[0]&&visited[1]))return;
+  unlocked=true;try{localStorage.setItem('col_kits','1');}catch(e){}
+  upan.style.display='none';kitUI();
+});
+document.getElementById('unlockClose').addEventListener('click',function(){upan.style.display='none';});
+function kitUI(){
+  var map=[['kThread','thread'],['kTele','tele'],['kSpeed','speed']];
+  map.forEach(function(m){
+    var el=document.getElementById(m[0]);
+    var base=el.innerHTML.replace(/<span class="cnt">.*?<\/span>/,'');
+    var on=unlocked||premium,pool=on&&freeOut(),cnt=premium?'∞':!on?'🔒':pool?(ytFollowed?dailyGet():0):kitLeft[m[1]];
+    el.innerHTML=base+'<span class="cnt">'+cnt+'</span>';
+    el.className='kit'+(!on?' locked':cnt===0?' empty':'')+(m[1]==='speed'&&boost>0?' on':'');
+  });
+}
+function useKit(k){
+  if(!unlocked&&!premium){drawUnlock();upan.style.display='flex';return;}
+  if(mode!=='play'||!prey.length)return;
+  var usePool=false;
+  if(!premium&&kitLeft[k]<=0){
+    if(!freeOut())return;
+    if(!ytFollowed){ypan.style.display='flex';return;}
+    if(dailyGet()<=0){banner={text:'Daily 20 used. Come back tomorrow!',e:'⏳',t:2.5};return;}
+    usePool=true;
+  }
+  if(k==='speed'){if(boost>0)return;boost=8;burst(px,py,'#f2c14e');}
+  else if(k==='tele'){
+    var n=nearest(1)[0];if(!n)return;
+    burst(px,py,'#9fd3ff');px=n.x;py=n.y;tx=px;ty=py;trail=[];burst(px,py,'#9fd3ff');
+    eat(prey.indexOf(n));
+  }else if(k==='thread'){
+    var ns=nearest(2);if(!ns.length)return;
+    ns.forEach(function(n){threads.push({x1:px,y1:py,x2:n.x,y2:n.y,t:.5});});
+    ns.forEach(function(n){if(mode==='play'){var i=prey.indexOf(n);if(i>=0)eat(i);}});
+  }
+  if(premium){}else if(usePool)dailyUse();else kitLeft[k]--;kitUI();
+}
+function nearest(c){
+  return prey.slice().sort(function(a,b){return Math.hypot(a.x-px,a.y-py)-Math.hypot(b.x-px,b.y-py);}).slice(0,c);
+}
+[['kThread','thread'],['kTele','tele'],['kSpeed','speed']].forEach(function(m){
+  var el=document.getElementById(m[0]);
+  el.addEventListener('pointerdown',function(e){e.stopPropagation();});
+  el.addEventListener('click',function(e){e.stopPropagation();useKit(m[1]);});
+});
+
+
+// ---- PAYMENT / PLAN ----
+// Put your payment link here (Razorpay / PayPal / UPI link) and the price text:
+var PAY_URL='https://YOUR_PAYMENT_LINK',PRICE_TEXT='₹49',premium=false,payVisited=false;
+try{premium=localStorage.getItem('col_premium')==='1';}catch(e){}
+var planPanel=document.getElementById('planPanel'),planCard=document.getElementById('planCard');
+function st(ok,yes,no){return '<span class="'+(ok?'ok':'no')+'">'+(ok?'✓ '+yes:'✗ '+no)+'</span>';}
+function drawPlan(){
+  var h='<h2>💳 Payment &amp; Plan</h2><h4>YOUR STATUS</h4>'+
+   '<div class="row"><span>Instagram kits</span>'+st(unlocked,'Unlocked','Locked')+'</div>'+
+   '<div class="row"><span>YouTube channel</span>'+st(ytFollowed,'Followed','Not followed')+'</div>'+
+   '<div class="row"><span>Premium</span>'+st(premium,'Active','Not bought')+'</div>'+(payRef?'<div class="row"><span>Reference</span><span>'+payRef+'</span></div>':'')+
+   '<h4>WHAT YOU GET</h4>';
+  if(unlocked||premium)h+='<div class="perk">✅ 3 free uses of each kit every game</div>';
+  else h+='<div class="perk">🔒 Follow the Instagram accounts to activate kits</div>';
+  if(ytFollowed)h+='<div class="perk">✅ 20 extra kit uses every day ('+dailyGet()+' left today)</div>';
+  else h+='<div class="perk">🔒 Follow on YouTube to get 20 extra uses every day</div>';
+  if(premium)h+='<div class="perk">✅ Unlimited kits, no limits ∞</div>';
+  else h+='<div class="perk">🔒 Premium: unlimited kits, no daily limit</div>';
+  if(!ytFollowed)h+='<button class="btn" id="planYT">▶ Follow on YouTube (free)</button>';
+  if(!premium){
+    h+='<button class="btn gold" id="planPay">Buy Unlimited Kits · '+PRICE_TEXT+'</button>';
+    if(payVisited)h+='<button class="btn" id="planPaid">I have paid</button>';
+  }
+  h+='<button class="btn" id="planClose">Close</button>';
+  planCard.innerHTML=h;
+  var g=function(i){return document.getElementById(i);};
+  if(g('planYT'))g('planYT').onclick=function(){planPanel.style.display='none';ypan.style.display='flex';};
+  if(g('planPay'))g('planPay').onclick=function(){payVisited=true;openURL(PAY_URL);drawPlan();};
+  if(g('planPaid'))g('planPaid').onclick=function(){
+    ask('Payment reference','Enter the reference number you got after paying. Keep it: you can use it to recover your purchase.',true,'Confirm',function(v){
+      var r=checkRef(v);if(r.err)return r.err;grantPremium(r.ref);drawPlan();return null;});
+    document.getElementById('dlgNo').style.display='block';
+  };
+  g('planClose').onclick=function(){planPanel.style.display='none';};
+}
+document.getElementById('payBtn').addEventListener('click',function(){drawPlan();planPanel.style.display='flex';});
+
+
+// ---- DATA: reference number, clear, recover ----
+// Optional: list the payment reference numbers you accept (leave empty to accept any valid-looking number)
+var VALID_REFS=[];
+var payRef='';try{payRef=localStorage.getItem('col_ref')||'';}catch(e){}
+var dlg=document.getElementById('dlg'),dlgIn=document.getElementById('dlgIn'),dlgErr=document.getElementById('dlgErr'),dlgCb=null;
+function ask(title,msg,useInput,okText,cb){
+  document.getElementById('dlgT').textContent=title;document.getElementById('dlgM').textContent=msg;
+  dlgIn.style.display=useInput?'block':'none';dlgIn.value='';dlgErr.textContent='';
+  document.getElementById('dlgOk').textContent=okText;dlgCb=cb;dlg.style.display='flex';
+  if(useInput)setTimeout(function(){dlgIn.focus();},50);
+}
+document.getElementById('dlgOk').addEventListener('click',function(){
+  var err=dlgCb?dlgCb(dlgIn.value):null;
+  if(err)dlgErr.textContent=err;else dlg.style.display='none';
+});
+document.getElementById('dlgNo').addEventListener('click',function(){dlg.style.display='none';});
+function checkRef(v){
+  v=(v||'').trim().toUpperCase();
+  if(!/^[A-Z0-9\-]{8,30}$/.test(v))return {err:'Enter a valid reference number (8-30 letters/numbers).'};
+  if(VALID_REFS.length&&VALID_REFS.map(function(x){return String(x).toUpperCase();}).indexOf(v)<0)return {err:'Reference number not found.'};
+  return {ref:v};
+}
+function grantPremium(ref){
+  premium=true;payRef=ref;
+  try{localStorage.setItem('col_premium','1');localStorage.setItem('col_ref',ref);}catch(e){}
+  kitUI();
+}
+document.getElementById('recoverBtn').addEventListener('click',function(){
+  ask('Recover Data','Enter the reference number you received after payment to get your purchase back.',true,'Recover',function(v){
+    var r=checkRef(v);if(r.err)return r.err;
+    grantPremium(r.ref);
+    setTimeout(function(){ask('Recovered ✓','Your payment ('+r.ref+') is restored. Unlimited kits are active.',false,'Great',function(){return null;});document.getElementById('dlgNo').style.display='none';},0);
+    return null;
+  });
+  document.getElementById('dlgNo').style.display='block';
+});
+document.getElementById('clearBtn').addEventListener('click',function(){
+  ask('Clear Data','This removes your rating, unlocks, follows and payment from this device. You can get your payment back with Recover Data and your reference number: keep it safe.',false,'Clear',function(){
+    ['col_rating','col_kits','col_yt','col_premium','col_ref'].forEach(function(k){try{localStorage.removeItem(k);}catch(e){}});
+    unlocked=false;ytFollowed=false;premium=false;payRef='';visited=[false,false];ytVisited=false;payVisited=false;
+    rating=0;rv.value='';rv.style.display='none';rb.style.display='none';rm.textContent='';drawStars();
+    kitLeft={thread:3,tele:3,speed:3};boost=0;kitUI();
+    return null;
+  });
+  document.getElementById('dlgNo').style.display='block';
+});
+
+var W=0,H=0,dpr=1;
+function size(){dpr=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
+size();addEventListener('resize',size);
+
+var mode,stage,eaten,px,py,tx,ty,prey,parts,trail,banner,deadAt,t=0,last=0;
+function reset(){kitLeft={thread:3,tele:3,speed:3};boost=0;threads=[];mode='start';stage=0;eaten=0;prey=[];parts=[];trail=[];banner=null;px=W*.5;py=H*.62;tx=px;ty=py;hud();kitUI();}
+function psize(){return Math.min(76,30+stage*3);}
+function spawn(x,y){
+  if(x==null){
+    var tries=0;
+    do{x=40+Math.random()*(W-80);y=110+Math.random()*(H-190);tries++;}
+    while(tries<20&&Math.hypot(x-px,y-py)<120);
+  }
+  prey.push({x:x,y:y,vx:0,vy:0,s:Math.random()*6.28});
+}
+function hud(){
+  var s='';
+  for(var i=0;i<ST.length;i++)s+='<span class="'+(i<stage?'done':i===stage?'now':'')+'">'+ST[i].e+'</span>';
+  s+='<span class="'+(stage>=ST.length?'now':'')+'">💀</span>';
+  document.getElementById('strip').innerHTML=s;
+  document.getElementById('startScreen').style.display=mode==='start'?'flex':'none';
+  document.getElementById('kits').style.display=mode==='play'?'flex':'none';
+  var i2=document.getElementById('info');
+  i2.textContent=mode==='play'?ST[stage].n+' · '+eaten+'/'+ST[stage].need+' '+ST[stage].pn:'';
+}
+function pointer(e){
+  var x=e.clientX,y=e.clientY;
+  if(mode==='start')return;
+  if(mode==='dead'){if(t-deadAt>1.2)reset();return;}
+  tx=x;ty=y;
+}
+document.getElementById('enterBtn').addEventListener('click',function(e){
+  e.stopPropagation();mode='play';tx=px;ty=py;spawn();hud();kitUI();
+});
+cv.addEventListener('pointerdown',function(e){pointer(e);cv.setPointerCapture(e.pointerId);cv.dragging=true;});
+cv.addEventListener('pointermove',function(e){if(cv.dragging&&mode==='play'){tx=e.clientX;ty=e.clientY;}});
+cv.addEventListener('pointerup',function(){cv.dragging=false;});
+cv.addEventListener('pointercancel',function(){cv.dragging=false;});
+
+function burst(x,y,col){
+  for(var i=0;i<10;i++){var a=Math.random()*6.28,v=60+Math.random()*120;
+    parts.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:.6,c:col});}
+}
+function eat(i){
+  var p=prey[i];prey.splice(i,1);burst(p.x,p.y,'#f2c14e');eaten++;
+  if(eaten>=ST[stage].need){
+    var from=ST[stage].n;stage++;eaten=0;
+    if(stage>=ST.length){mode='dead';deadAt=t;prey=[];banner=null;}
+    else banner={text:from+' became '+ST[stage].n+'!',e:ST[stage].e,t:2};
+    burst(px,py,'#fff');
+  }
+  hud();
+}
+function update(dt){
+  var d=Math.hypot(tx-px,ty-py),sp=150+stage*7,mv=boost>0?sp*2:sp;
+  if(boost>0){boost-=dt;if(boost<=0){boost=0;kitUI();}}
+  for(var h=threads.length-1;h>=0;h--){threads[h].t-=dt;if(threads[h].t<=0)threads.splice(h,1);}
+  if(mode==='play'&&d>4){
+    var m=Math.min(d,mv*dt);px+=(tx-px)/d*m;py+=(ty-py)/d*m;
+    var lt=trail[trail.length-1];
+    if(!lt||Math.hypot(lt.x-px,lt.y-py)>9){trail.push({x:px,y:py});if(trail.length>60)trail.shift();}
+  }
+  if(mode==='play'){
+    while(prey.length<3)spawn();
+    for(var i=prey.length-1;i>=0;i--){
+      var p=prey[i];p.s+=dt*3;
+      var fx=p.x-px,fy=p.y-py,fd=Math.hypot(fx,fy)||1,fs=sp*.62;
+      if(fd<190){p.vx=fx/fd*fs-fy/fd*Math.sin(p.s*2)*fs*.6;p.vy=fy/fd*fs+fx/fd*Math.sin(p.s*2)*fs*.6;}
+      else{p.vx=Math.sin(p.s)*25;p.vy=Math.cos(p.s*.8)*25;}
+      p.x=Math.max(30,Math.min(W-30,p.x+p.vx*dt));p.y=Math.max(110,Math.min(H-40,p.y+p.vy*dt));
+      if(Math.hypot(p.x-px,p.y-py)<psize()*.65){eat(i);if(mode!=='play')break;}
+    }
+  }
+  for(var k=parts.length-1;k>=0;k--){var q=parts[k];q.x+=q.vx*dt;q.y+=q.vy*dt;q.l-=dt;if(q.l<=0)parts.splice(k,1);}
+  if(banner){banner.t-=dt;if(banner.t<=0)banner=null;}
+}
+function text(s,x,y,sz,col,a){ctx.globalAlpha=a==null?1:a;ctx.fillStyle=col||'#e8f0e0';ctx.font=sz+'px Georgia,serif';ctx.fillText(s,x,y);ctx.globalAlpha=1;}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  if(ST[stage]&&ST[stage].n==='Snake'&&mode==='play'){
+    var n=Math.min(trail.length,6+eaten*8);
+    for(var i=0;i<n;i+=2){var tp=trail[trail.length-1-i];var r=(psize()*.38)*(1-i/(n+6));
+      ctx.fillStyle='#3d8f3a';ctx.beginPath();ctx.arc(tp.x,tp.y,r,0,6.28);ctx.fill();}
+  }
+  for(var j=0;j<prey.length;j++){ctx.font='30px serif';ctx.fillText(ST[Math.min(stage,ST.length-1)].p,prey[j].x,prey[j].y);}
+  for(var th=0;th<threads.length;th++){var T=threads[th];ctx.globalAlpha=Math.min(1,T.t*2);ctx.strokeStyle='#f2c14e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(T.x1,T.y1);ctx.lineTo(T.x2,T.y2);ctx.stroke();}
+  ctx.globalAlpha=1;
+  if(mode==='play'){ctx.font=psize()+'px serif';ctx.fillText(ST[stage].e,px,py);}
+  for(var k=0;k<parts.length;k++){var q=parts[k];ctx.globalAlpha=Math.max(0,q.l/.6);ctx.fillStyle=q.c;ctx.beginPath();ctx.arc(q.x,q.y,3,0,6.28);ctx.fill();}
+  ctx.globalAlpha=1;
+  if(mode==='play'&&stage===0&&eaten===0)text('Drag to move. Touch the food to eat it.',W/2,H-130,14,'#7d9a7a');
+  if(banner){
+    var a=Math.min(1,banner.t);
+    ctx.fillStyle='rgba(0,0,0,'+(.55*a)+')';ctx.fillRect(0,H/2-70,W,140);
+    ctx.globalAlpha=a;ctx.font='46px serif';ctx.fillStyle='#fff';ctx.fillText(banner.e,W/2,H/2-20);
+    text(banner.text,W/2,H/2+32,22,'#f2c14e',a);
+  }
+  if(mode==='dead'){
+    ctx.fillStyle='rgba(0,0,0,.8)';ctx.fillRect(0,0,W,H);
+    ctx.font='72px serif';ctx.fillText('💀',W/2,H/2-60);
+    text('Death comes for everyone.',W/2,H/2+10,24,'#f2c14e');
+    text('From a single atom to human, you ate your way here.',W/2,H/2+44,14,'#e8f0e0');
+    if(t-deadAt>1.2)text('Tap to live again',W/2,H/2+84,16,'#7d9a7a');
+  }
+}
+function loop(ts){
+  var dt=Math.min(.05,(ts-last)/1000||0);last=ts;t+=dt;
+  update(dt);draw();requestAnimationFrame(loop);
+}
+reset();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
